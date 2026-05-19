@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sojo Industries — Chemical SDS Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --border2: #21262d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --accent: #f0a500;
+    --accent2: #e87700;
+    --health: #f85149;
+    --fire: #ff7b72;
+    --react: #ffa657;
+    --special: #79c0ff;
+    --green: #3fb950;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  /* Header */
+  .header {
+    max-width: 800px;
+    margin: 0 auto 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .logo-mark {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 18px;
+    color: #000;
+    flex-shrink: 0;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .doc-ref {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Main container */
+  .container { max-width: 800px; margin: 0 auto; }
+
+  /* Search/select area */
+  .lookup-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .lookup-box label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .search-input-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+  #searchInput {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #searchInput:focus { border-color: var(--accent); }
+  #searchInput::placeholder { color: var(--text-dim); }
+
+  #categoryFilter {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    min-width: 160px;
+    transition: border-color 0.15s;
+  }
+  #categoryFilter:focus { border-color: var(--accent); }
+  #categoryFilter option { background: var(--surface); }
+
+  /* Product list */
+  .product-list-wrap {
+    margin-top: 14px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .product-list-wrap::-webkit-scrollbar { width: 6px; }
+  .product-list-wrap::-webkit-scrollbar-track { background: var(--bg); }
+  .product-list-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .product-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border2);
+    cursor: pointer;
+    transition: background 0.1s;
+    gap: 10px;
+  }
+  .product-item:last-child { border-bottom: none; }
+  .product-item:hover { background: var(--surface2); }
+  .product-item.active { background: rgba(240,165,0,0.08); border-left: 3px solid var(--accent); }
+  .product-item-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    flex: 1;
+  }
+  .product-item-company {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+  }
+  .product-item-use {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    white-space: nowrap;
+    border: 1px solid var(--border2);
+  }
+  .count-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* Detail card */
+  #detailCard {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .detail-header {
+    background: var(--surface2);
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .detail-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    flex: 1;
+    min-width: 200px;
+  }
+  .detail-company {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* HFRP Diamond */
+  .hfrp-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .hfrp-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .hfrp-diamond {
+    position: relative;
+    width: 80px;
+    height: 80px;
+  }
+  .hfrp-diamond svg { width: 80px; height: 80px; }
+
+  /* Info grid */
+  .detail-body { padding: 20px; }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .info-item {}
+  .info-item-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 3px;
+  }
+  .info-item-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-word;
+  }
+  .info-item-value.empty { color: var(--text-dim); font-style: italic; font-weight: 400; }
+
+  .composition-box {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .composition-box .info-item-label { margin-bottom: 6px; }
+  .composition-box .info-item-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  /* SDS Button */
+  .sds-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    font-family: 'IBM Plex Sans', sans-serif;
+    letter-spacing: 0.2px;
+  }
+  .sds-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+  .sds-btn.disabled {
+    background: var(--surface2);
+    color: var(--text-dim);
+    cursor: default;
+    border: 1px solid var(--border);
+    pointer-events: none;
+  }
+  .sds-btn svg { flex-shrink: 0; }
+
+  /* QR section */
+  .qr-section {
+    border-top: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .qr-box {
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 6px;
+    padding: 10px;
+    display: inline-block;
+  }
+  #qrcode { display: block; }
+  .qr-info { flex: 1; min-width: 180px; }
+  .qr-info h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .qr-info p {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .qr-url-display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    word-break: break-all;
+    background: var(--bg);
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+  }
+  .no-qr {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 20px 0;
+  }
+
+  /* Footer */
+  .footer {
+    max-width: 800px;
+    margin: 40px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--border2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer p {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .placeholder-msg {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .placeholder-msg span {
+    display: block;
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo-mark">SJ</div>
+    <div>
+      <h1>Chemical SDS Lookup</h1>
+      <p>Sojo Industries — Safety Data Sheet Reference System</p>
+    </div>
+  </div>
+  <div class="doc-ref">DOC: FSQ-11.6.4-I &nbsp;|&nbsp; 54 Products &nbsp;|&nbsp; Free to use — no login required</div>
+</div>
+
+<div class="container">
+
+  <!-- Lookup Box -->
+  <div class="lookup-box">
+    <label>Search & Filter Products</label>
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <input type="text" id="searchInput" placeholder="Search by product name or company…" oninput="filterProducts()" autocomplete="off" />
+      </div>
+      <select id="categoryFilter" onchange="filterProducts()">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    <div id="countBadge" class="count-badge"></div>
+    <div class="product-list-wrap" id="productList"></div>
+  </div>
+
+  <!-- Detail Card -->
+  <div id="detailCard">
+    <div class="detail-header">
+      <div>
+        <div class="detail-name" id="dName"></div>
+        <div class="detail-company" id="dCompany"></div>
+      </div>
+      <div class="hfrp-wrap">
+        <div class="hfrp-label">NFPA 704</div>
+        <div class="hfrp-diamond">
+          <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" id="hfrpSvg">
+            <!-- Top: Health (blue) -->
+            <polygon points="40,4 76,40 40,40" fill="#1565c0"/>
+            <!-- Left: Flammability (red) -->
+            <polygon points="40,4 4,40 40,40" fill="#c62828"/>
+            <!-- Bottom: Reactivity (yellow) -->
+            <polygon points="4,40 40,76 40,40" fill="#f9a825"/>
+            <!-- Right: Special (white) -->
+            <polygon points="76,40 40,76 40,40" fill="#e0e0e0"/>
+            <!-- Outlines -->
+            <polygon points="40,4 76,40 40,76 4,40" fill="none" stroke="#0d1117" stroke-width="2"/>
+            <line x1="40" y1="4" x2="40" y2="76" stroke="#0d1117" stroke-width="1.5"/>
+            <line x1="4" y1="40" x2="76" y2="40" stroke="#0d1117" stroke-width="1.5"/>
+            <!-- Labels -->
+            <text x="40" y="27" text-anchor="middle" font-size="13" font-weight="bold" fill="white" id="svgHealth">–</text>
+            <text x="22" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="white" id="svgFire">–</text>
+            <text x="40" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#333" id="svgReact">–</text>
+            <text x="58" y="44" text-anchor="middle" font-size="11" font-weight="bold" fill="#333" id="svgSpecial">–</text>
+          </svg>
+        </div>
+        <div id="hfrpRaw" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:2px;text-align:center;"></div>
+      </div>
+    </div>
+
+    <div class="detail-body">
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-item-label">Product Code</div>
+          <div class="info-item-value" id="dCode"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">Use / Category</div>
+          <div class="info-item-value" id="dUse"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">SDS Number</div>
+          <div class="info-item-value" id="dSDS"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">Version</div>
+          <div class="info-item-value" id="dVersion"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">Issue Date</div>
+          <div class="info-item-value" id="dIssue"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">Revision Date</div>
+          <div class="info-item-value" id="dRevision"></div>
+        </div>
+      </div>
+
+      <div class="composition-box" id="compBox">
+        <div class="info-item-label">Hazardous Chemical Composition</div>
+        <div class="info-item-value" id="dComposition"></div>
+      </div>
+
+      <a id="sdsLink" class="sds-btn" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        View SDS Document
+      </a>
+    </div>
+
+    <!-- QR Code Section -->
+    <div class="qr-section">
+      <div id="qrBoxWrap"></div>
+      <div class="qr-info">
+        <h3>QR Code — Direct SDS Link</h3>
+        <p>Scan to open the SDS document instantly on any mobile device. Print and attach near the chemical storage area.</p>
+        <div class="qr-url-display" id="qrUrlDisplay"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Placeholder -->
+  <div id="placeholder" class="placeholder-msg">
+    <span>🔬</span>
+    Select a chemical product above to view its Safety Data Sheet information and generate a QR code.
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>Sojo Industries · 900 Wheeler Way · Langhorne, PA 19047</p>
+  <p>Confidential & Proprietary · FSQ-11.6.4-I · v2</p>
+</div>
+
+<script>
+const CHEMICALS = [{"name": "All Purpose Cleaner Spray", "company": "ULINE", "code": "S-19455", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2018-03-07", "revision_date": "2018-03-07", "supersedes_date": "", "composition": "2-(2-butoxyethoxy)ethanol", "hfrp": "0/0/0/B", "sds_link": "https://www.uline.com/PDF/SS-19455.pdf"}, {"name": "Uline All-Purpose Cleaner Refill", "company": "ULINE", "code": "S-19456", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2021-04-23", "revision_date": "", "supersedes_date": "", "composition": "2-(2-butoxyethoxy)ethanol", "hfrp": "0/0/0/B", "sds_link": ""}, {"name": "Uline Air Freshener - Cool Linen", "company": "ULINE", "code": "S-17147", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2022-11-18", "revision_date": "", "supersedes_date": "", "composition": "", "hfrp": "0/1/0/0", "sds_link": "https://img.uline.com/is/content/uline/SS-17147pdf"}, {"name": "Clorox\u00ae Germicidal Bleach Concentrated", "company": "S.C. Johnson & Son, Inc.", "code": "", "use": "Office Cleaning", "sds_num": "", "version": "2", "issue_date": "2020-05-08", "revision_date": "2020-05-15", "supersedes_date": "", "composition": "Sodium hypochlorite", "hfrp": "3/0/0/X", "sds_link": "https://www.thecloroxcompany.com/wp-content/uploads/2020/06/CloroxPro%C2%AE-Clorox%C2%AE-Germicidal-Bleach_Multilingual2.pdf"}, {"name": "Uline Toilet Bowl Cleaner", "company": "ULINE", "code": "S-24321", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2021-12-09", "revision_date": "", "supersedes_date": "", "composition": "Hydrochloric Acid", "hfrp": "3/0/0/0", "sds_link": "https://img.uline.com/is/content/uline/SS-24321pdf"}, {"name": "Uline Glass Cleaner", "company": "ULINE", "code": "S-19452", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2021-06-07", "revision_date": "", "supersedes_date": "", "composition": "2-Propanol, Surfactant Blend, Ammonia", "hfrp": "0/0/0/0", "sds_link": "https://img.uline.com/is/content/uline/SS-19452pdf"}, {"name": "Uline Multi-Purpose Cleaner - Lavender", "company": "ULINE", "code": "S-19454", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2021-01-28", "revision_date": "", "supersedes_date": "", "composition": "Surfactant Blend", "hfrp": "2/0/0/0", "sds_link": ""}, {"name": "30 SecondsMold & MIldew Remover", "company": "30 Seconds Cleaners", "code": "30S110", "use": "Office Cleaning", "sds_num": "", "version": "1", "issue_date": "2023-01-10", "revision_date": "", "supersedes_date": "", "composition": "Sodium hypochlorite", "hfrp": "3/0/0/0", "sds_link": "https://30secondscleaners.com/mwdownloads/download/link/id/2308?srsltid=AfmBOopMqNLp6v6WuhaT0C1VLW281Lznlv2oNFuV4zXYCPq4oPifptqW"}, {"name": "ORANGE-SOL: Multi-Use Citrus Solvent", "company": "Orange-Sol", "code": "", "use": "General Cleaning", "sds_num": "50026-001", "version": "2", "issue_date": "1992-04-03", "revision_date": "2002-02-07", "supersedes_date": "1992-04-03", "composition": "", "hfrp": "0/2/0/0", "sds_link": ""}, {"name": "Pure Bright Germicidal Ultra Bleach", "company": "KIK Custom Products", "code": "11008-635041", "use": "General Cleaning", "sds_num": "59647-21014", "version": "1", "issue_date": "2015-04-14", "revision_date": "", "supersedes_date": "", "composition": "Sodium hypochlorite", "hfrp": "2/0/1/0", "sds_link": "https://amp.generalair.com/msdsdocs/jmzpbgubs.pdf"}, {"name": "Uline Liquid Ice Melt", "company": "ULINE", "code": "", "use": "Outdoor Maintenance", "sds_num": "", "version": "5", "issue_date": "2015-12-01", "revision_date": "", "supersedes_date": "", "composition": "Calcium Chloride", "hfrp": "1/0/0/0", "sds_link": ""}, {"name": "Multi-Purpose Lubricant & Corrosion Inhibitor", "company": "CRC", "code": "", "use": "Machine Maintenance", "sds_num": "", "version": "1", "issue_date": "2020-03-28", "revision_date": "", "supersedes_date": "", "composition": "petrolatum , acetate, butyl stearate, paraffin oils (petroleum), distillates (petroleum", "hfrp": "1/4/0/0", "sds_link": "https://www.crcindustries.com/media/msdsen/msds_en-1003257.pdf"}, {"name": "Uline Antibacterial Handsoap", "company": "ULINE", "code": "S-17087", "use": "Personell Cleaning", "sds_num": "", "version": "1", "issue_date": "2022-02-04", "revision_date": "", "supersedes_date": "", "composition": "Benzalkonium Chloride, Water, Lauramine Oxide, Cocamidopropyl Betaine, Glycerin, Fragrance", "hfrp": "3/0/0/0", "sds_link": ""}, {"name": "Uline Antibacterial Handsoap (Foam)", "company": "ULINE", "code": "S-20661", "use": "Personell Cleaning", "sds_num": "", "version": "1", "issue_date": "2022-02-04", "revision_date": "", "supersedes_date": "", "composition": "Benzalkonium Chloride, Water, Lauramine Oxide, Cocamidopropyl Betaine, Glycerin", "hfrp": "3/0/0/0", "sds_link": "https://img.uline.com/is/content/uline/SS-17080pdf"}, {"name": "Crystal Simple Green\u00ae Industrial Cleaner & Degreaser", "company": "Sunshine Makers, Inc.", "code": "43318000188", "use": "Indoor Cleaning", "sds_num": "19000-22B", "version": "", "issue_date": "2022-06-08", "revision_date": "", "supersedes_date": "2022-02-01", "composition": "C9-11 Alcohols Ethoxylated", "hfrp": "1/0/0/0", "sds_link": "https://cdn.simplegreen.com/downloads/SDS_EN-US_SimpleGreenCrystalIndustrialCleanerDegreaser.pdf"}, {"name": "EverPrime\u2122", "company": "Waterless Co., Inc.", "code": "", "use": "Indoor Cleaning", "sds_num": "1514", "version": "1", "issue_date": "2018-01-10", "revision_date": "", "supersedes_date": "", "composition": "", "hfrp": "1/0/0/0", "sds_link": "https://static1.squarespace.com/static/55f0bb56e4b0292a721109c4/t/5a4d4cfc71c10b69178b0eb6/1515015422878/SDS+EverPrime%C2%81+1514_2018.pdf"}, {"name": "FABULOSO ALL PURPOSE CLEANER LIQUID OCEAN COOL", "company": "Colgate-Palmolive Co", "code": "200000053409", "use": "Indoor Cleaning", "sds_num": "660000004749", "version": "1", "issue_date": "2017-07-31", "revision_date": "2017-07-31", "supersedes_date": "", "composition": "Sodium Dodecyl Benzene Sulfonate (Linear)", "hfrp": "1/1/0/0", "sds_link": "https://www.uline.com/PDF/SS-18398.pdf"}, {"name": "Uline Dish Soap", "company": "ULINE", "code": "S-25783", "use": "Indoor Cleaning", "sds_num": "", "version": "1", "issue_date": "2023-06-28", "revision_date": "", "supersedes_date": "", "composition": "Sodium C14-16 Olefin Sulfonate", "hfrp": "3/0/0/0", "sds_link": ""}, {"name": "Rust-oleum High Performance Yellow Safety Paint", "company": "Rust-Oleum", "code": "242258", "use": "General Maintenance", "sds_num": "", "version": "2", "issue_date": "2017-10-30", "revision_date": "2017-10-30", "supersedes_date": "2016-10-03", "composition": "21% of the mixture consists of ingredient(s) of unknown acute toxicity", "hfrp": "2/2/0/0", "sds_link": "https://dkstatic.blob.core.windows.net/resources/1126702/242258.pdf"}, {"name": "HENRY\u00ae EASYRELEASE Adhesive Remover", "company": "W.W. Henry Company", "code": "70010862", "use": "General Cleaning", "sds_num": "", "version": "1", "issue_date": "2021-01-07", "revision_date": "2021-01-07", "supersedes_date": "", "composition": "Ethanolamine / 2-butoxyethoxy", "hfrp": "3/0/0/0", "sds_link": "https://images.homedepot-static.com/catalog/pdfImages/57/57ffc0ed-765c-4dd3-993d-0212e5b26bba.pdf"}, {"name": "Klean Strip Green Adhesive Remover", "company": "W. M. Barr", "code": "", "use": "General Cleaning", "sds_num": "", "version": "", "issue_date": "2015-07-28", "revision_date": "", "supersedes_date": "2015-07-10", "composition": "Benzenemethanol (Benzyl alcohol)", "hfrp": "2/1/0/0", "sds_link": "https://images.thdstatic.com/catalog/pdfImages/00/0002fd0b-96f8-40a7-ae9a-c2cca37951bc.pdf"}, {"name": "LU\u2122910 Food Grade Silicone Lubricant Aerosol", "company": "Sprayon Products Group", "code": "SC0910000", "use": "General Cleaning", "sds_num": "SHW-85-NA-GHS-US", "version": "8.01", "issue_date": "2021-09-22", "revision_date": "2021-09-22", "supersedes_date": "2021-04-17", "composition": "Trichloroethylene", "hfrp": "2/3/0/0", "sds_link": "https://www.paintdocs.com/docs/webPDF.jsp?SITEID=SO&doctype=SDS&lang=en&prodno=075577759316&cntry=US"}, {"name": "Lysol Brand II All Purpose Cleaner - Lemon Breeze", "company": "Reckitt Benckiser LLC.", "code": "FF372256", "use": "General Cleaning", "sds_num": "D0203066", "version": "3", "issue_date": "2015-04-24", "revision_date": "", "supersedes_date": "2012-02-07", "composition": "benzyl-C12-16-alkyldimethyl", "hfrp": "1/0/0/B", "sds_link": "https://resources.cleanitsupply.com/MSDS/RAC75352EA_SDS.PDF"}, {"name": "Mr. Clean Professional Glass and Multi-Surface Cleaner", "company": "Procter & Gamble", "code": "91483190_PROF_NG", "use": "General Cleaning", "sds_num": "", "version": "1", "issue_date": "2019-03-20", "revision_date": "2019-03-20", "supersedes_date": "", "composition": "", "hfrp": "0/1/0/0", "sds_link": "https://resources.cleanitsupply.com/MSDS/PGC81308_SDS.PDF"}, {"name": "Nviroclean\u2122", "company": "Waterless Co., Inc.", "code": "", "use": "General Cleaning", "sds_num": "1614", "version": "1", "issue_date": "2018-01-10", "revision_date": "", "supersedes_date": "", "composition": "Dipropylene glycol monomethyl ether", "hfrp": "0/0/0/0", "sds_link": "https://static1.squarespace.com/static/55f0bb56e4b0292a721109c4/t/5a4d4d7e4192020626615fa2/1515015553407/SDS+Nviroclean+1614_2018.pdf"}, {"name": "Professional Lysol\u00ae Power Toilet Bowl Cleaner", "company": "Reckitt Benckiser LLC.", "code": "FF0259960", "use": "General Cleaning", "sds_num": "D0102520", "version": "1", "issue_date": "2015-11-23", "revision_date": "2015-11-23", "supersedes_date": "", "composition": "Hydrochloric acid / Amines, tallow alkyl, ethoxylated / Alcohols, C12-16, ethoxylated", "hfrp": "3/0/1/D", "sds_link": "http://www.rbnainfo.com/MSDS/US/Professional%20Lysol%20Brand%20TBC%20EN%20GHS.pdf"}, {"name": "Simple Green\u00ae All-Purpose Cleaner", "company": "Sunshine Makers, Inc.", "code": "43318000652", "use": "General Cleaning", "sds_num": "13000-21A", "version": "", "issue_date": "2021-02-01", "revision_date": "", "supersedes_date": "2018-08-08", "composition": "C9-11 Alcohols Ethoxylated", "hfrp": "0/0/0/B", "sds_link": "https://cdn.simplegreen.com/downloads/SDS_EN-US_SimpleGreenAllPurposeCleaner.pdf"}, {"name": "Simple Green\u00ae Industrial Cleaner & Degreaser", "company": "Sunshine Makers, Inc.", "code": "43318000003", "use": "Machine Cleaning", "sds_num": "13008-21A", "version": "", "issue_date": "2021-06-03", "revision_date": "", "supersedes_date": "2018-05-31", "composition": "C9-11 Alcohols Ethoxylated", "hfrp": "0/0/0/B", "sds_link": "https://cdn.simplegreen.com/downloads/SDS_EN-US_SimpleGreenIndustrialCleanerDegreaser.pdf"}, {"name": "SOFTSOAP ANTIBACTERIAL LIQUID SOAP", "company": "Colgate-Palmolive Co", "code": "200000048132", "use": "Office Cleaning", "sds_num": "660000001317", "version": "1.1", "issue_date": "", "revision_date": "2016-04-05", "supersedes_date": "", "composition": "CETRIMONIUM CHLORIDE", "hfrp": "3/1/0/0", "sds_link": "http://sds.staples.com/msds/789230.pdf"}, {"name": "ULTRA PALMOLIVE ANTIBACTERIAL DISH LIQUID", "company": "Colgate-Palmolive Co", "code": "200000035885", "use": "Office Cleaning", "sds_num": "660000001345", "version": "1.6", "issue_date": "2016-06-09", "revision_date": "2019-06-17", "supersedes_date": "", "composition": "Sodium Laureth Sulfate", "hfrp": "3/1/0/0", "sds_link": "https://content.oppictures.com/Master_Images/Master_PDF_Files/CPC45038_SDS.PDF"}, {"name": "Ultra Shine Dishwashing Liquid-Lemon", "company": "Ultra Soap International", "code": "", "use": "Office Cleaning", "sds_num": "112000", "version": "", "issue_date": "", "revision_date": "2016-04-29", "supersedes_date": "2015-05-09", "composition": "Sodium Laureth Sulfate", "hfrp": "3/1/0/0", "sds_link": "http://ultrasoap.com/assets/ultra-sds-ultra-shine-lemon-dish.pdf"}, {"name": "WINDEX\u00ae ORIGINAL GLASS CLEANER", "company": "S.C. Johnson & Son, Inc.", "code": "", "use": "Office Cleaning", "sds_num": "350000014153", "version": "1", "issue_date": "2016-09-06", "revision_date": "", "supersedes_date": "", "composition": "", "hfrp": "1/0/0/0", "sds_link": "https://beta.lakeland.edu/AboutUs/MSDS/PDFs/3258/Windex%20Original%20Glass%20Cleaner%20(SC%20Johnson)%201-23-18.pdf"}, {"name": "A118-4 Additive for Markem 9450 Coders", "company": "Markem Imaje", "code": "A118-4", "use": "Coder", "sds_num": "UN1193", "version": "0.03", "issue_date": "2022-07-13", "revision_date": "2022-07-13", "supersedes_date": "", "composition": "Methyl ethyl ketone", "hfrp": "1/3/0/0", "sds_link": "https://www.markem-imaje.com/services-support/safety-data-sheets"}, {"name": "MB175-4 Ink for Markem 9450 Coders", "company": "Markem Imaje", "code": "MB175-4", "use": "Coder", "sds_num": "UN1210", "version": "2.03", "issue_date": "2022-08-18", "revision_date": "2022-07-13", "supersedes_date": "", "composition": "Methyl ethyl ketone", "hfrp": "1/3/0/0", "sds_link": "https://www.markem-imaje.com/services-support/safety-data-sheets"}, {"name": "SI-CIJ9020 Black Ink", "company": "Squid Ink", "code": "SI-CIJ9020", "use": "Coder", "sds_num": "", "version": "1.2", "issue_date": "2015-02-25", "revision_date": "2020-06-15", "supersedes_date": "", "composition": "butanone / 1-methoxy-2-propanol", "hfrp": "1/3/0/0", "sds_link": "https://drive.google.com/drive/folders/1UEq_4ifSSUOTW7ufJqijrt9dSyCHvpun"}, {"name": "SI-CIJ9030 Black Ink", "company": "Squid Ink", "code": "SI-CIJ9030", "use": "Coder", "sds_num": "", "version": "1", "issue_date": "2017-12-05", "revision_date": "2017-12-05", "supersedes_date": "", "composition": "butanone / ethyl methyl ketone", "hfrp": "2/3/0/0", "sds_link": "https://drive.google.com/drive/folders/1UEq_4ifSSUOTW7ufJqijrt9dSyCHvpun"}, {"name": "SI-CIJ9090 Make-Up (Coder)", "company": "Squid Ink", "code": "SI-CIJ9090", "use": "Coder", "sds_num": "", "version": "1.2", "issue_date": "2015-08-11", "revision_date": "2020-06-15", "supersedes_date": "", "composition": "butanone / ethyl (S)-2-hydroxypropionate, ethyl L-lactate", "hfrp": "1/3/0/0", "sds_link": "https://drive.google.com/drive/folders/1UEq_4ifSSUOTW7ufJqijrt9dSyCHvpun"}, {"name": "3M Silicone Spray", "company": "3M", "code": "62-4699-4930-9 (8)", "use": "Lubricant", "sds_num": "", "version": "5.01", "issue_date": "2018-05-24", "revision_date": "2016-07-01", "supersedes_date": "2016-07-01", "composition": "Acetone, Hydrotreated Light Naphtha (Petroleum), Propane, Poly(Dimethylsiloxane)", "hfrp": "2/4/0/0", "sds_link": "https://www.uline.com/PDF/SS-18768.pdf"}, {"name": "Rapid Tap Cutting Oil", "company": "Relton Corporation", "code": "", "use": "Lubricant", "sds_num": "", "version": "1", "issue_date": "2015-03-30", "revision_date": "", "supersedes_date": "", "composition": "Mineral oil (70-90%), C14-C16 chlorinated paraffin, Calcium sulfonate (2-3%)", "hfrp": "1/1/0/C", "sds_link": "https://sojoindustries0.sharepoint.com/:b:/s/SojoSharedDocuments/EbfO-v_LeUVGh7iQZfYP8H0Bg0qFNk5YFUyjiuHDqEfHwA?e=Vuu1Vl"}, {"name": "Spray-on Food Grade Silicone Lubricant", "company": "Sprayon Products", "code": "S00210", "use": "Lubricant", "sds_num": "", "version": "1", "issue_date": "2015-03-13", "revision_date": "", "supersedes_date": "", "composition": "Hexane (42%), 2-Methylpentane (19.4%), Propane (15%), 3-Methylpentane (7.2%)", "hfrp": "2/4/0/0", "sds_link": "https://sojoindustries0.sharepoint.com/:b:/s/SojoSharedDocuments/EQXbYCMOjjZJuVk194M89-MBFerINpXAqnkF-XfnuA1jZQ?e=njAQch"}, {"name": "Markem Imaje 320 Cleaner", "company": "Markem-Imaje", "code": "80000343204B", "use": "Coder", "sds_num": "UN1993", "version": "4", "issue_date": "2026-04-22", "revision_date": "2026-04-22", "supersedes_date": "", "composition": "Isopropyl Alcohol (~60-70%), Ethyl Acetate (~30-40%)", "hfrp": "2/3/0/0", "sds_link": "https://sojoindustries0.sharepoint.com/sites/SojoSharedDocuments/Shared%20Documents/SQF%20&%20QPI%20Folder/Archive/MSDS%20Information/Markem%20Imaje%20320%20Cleaner.pdf?CT=1778009111383&OR=ItemsView"}, {"name": "SPRAYON Machine Oil LU700 H1", "company": "Sprayon Products", "code": "S00700", "use": "Machine Maintenance", "sds_num": "", "version": "1", "issue_date": "2015-05-29", "revision_date": "", "supersedes_date": "", "composition": "Aliphatic Solvent (67.5%), Paraffinic Mineral Oil (30%)", "hfrp": "2/4/0/0", "sds_link": "https://www.grainger.com/sds/pdf/220785.pdf"}, {"name": "LPS DETEX FoodLube Sugar Dissolving Fluid", "company": "ITW Pro Brands", "code": "57716 / 57728 / C57701", "use": "Machine Maintenance", "sds_num": "57716", "version": "1.2", "issue_date": "2019-06-14", "revision_date": "2023-02-10", "supersedes_date": "2018-05-22", "composition": "Petroleum lubricants, corrosion inhibitors", "hfrp": "1/1/0/0", "sds_link": "https://www.itwprobrands.com/files/techdatasheets/LPSDETEXFOODLUBESugarDissolvingFluid-.pdf"}, {"name": "Klean-Strip Denatured Alcohol", "company": "W.M. Barr / Klean-Strip", "code": "GSL26 / QSL26 series", "use": "Machine Maintenance", "sds_num": "GKSL26", "version": "3.1", "issue_date": "2020-03-19", "revision_date": "2023-08-10", "supersedes_date": "2018-01-05", "composition": "Ethanol, Methanol, Methyl Isobutyl Ketone", "hfrp": "2/3/0/0", "sds_link": "https://kleanstrip.com/heating-fuels/denatured-alcohol/"}, {"name": "WD-40 EZ-REACH", "company": "WD-40 Company", "code": "EZ-REACH", "use": "Machine Maintenance", "sds_num": "491567", "version": "2", "issue_date": "2021-04-08", "revision_date": "2024-01-12", "supersedes_date": "2019-09-15", "composition": "Petroleum distillates, base oils, CO2 propellant", "hfrp": "1/2/0/0", "sds_link": "https://www.wd40.com/products/ez-reach/"}, {"name": "CRC QD Electronic Cleaner", "company": "CRC Industries", "code": "5103", "use": "Machine Maintenance", "sds_num": "5103", "version": "5.4", "issue_date": "2020-11-02", "revision_date": "2023-09-18", "supersedes_date": "2019-07-11", "composition": "Hexane, ethanol, CO2", "hfrp": "2/4/0/0", "sds_link": "https://www.crcindustries.com/qd-174-electronic-cleaner-11-wt-oz/"}, {"name": "Chemtronics Electro-Wash PX", "company": "Chemtronics", "code": "ES1605 / ES1610", "use": "Machine Maintenance", "sds_num": "ES1605", "version": "4", "issue_date": "2019-08-16", "revision_date": "2022-12-01", "supersedes_date": "2018-04-20", "composition": "n-Hexane, IPA, hydrocarbon propellants", "hfrp": "2/4/0/0", "sds_link": "https://www.chemtronics.com/electro-wash-px"}, {"name": "AGS Sil-Glyde Silicone Compound", "company": "American Grease Stick", "code": "BK-4", "use": "Machine Maintenance", "sds_num": "BK-4", "version": "2.3", "issue_date": "2018-02-14", "revision_date": "2021-06-22", "supersedes_date": "2016-10-09", "composition": "Silicone compounds, petroleum oils", "hfrp": "1/1/0/0", "sds_link": "https://agscompany.com/product/sil-glyde-silicone-brake-lubricant/"}, {"name": "CRC 3-36 Multi-Purpose Lubricant", "company": "CRC Industries", "code": "3005", "use": "Machine Maintenance", "sds_num": "3005", "version": "3.8", "issue_date": "2021-01-27", "revision_date": "2024-02-05", "supersedes_date": "2019-03-18", "composition": "Petroleum distillates, mineral oil", "hfrp": "1/2/0/0", "sds_link": "https://www.crcindustries.com/3-36-multi-purpose-lubricant-and-corrosion-inhibitor-11-wt-oz/"}, {"name": "Bernzomatic Butane Fuel", "company": "Worthington Enterprises", "code": "BF56", "use": "Machine Maintenance", "sds_num": "BF56", "version": "2.1", "issue_date": "2019-05-10", "revision_date": "2023-07-14", "supersedes_date": "2017-08-25", "composition": "Butane", "hfrp": "1/4/0/0", "sds_link": "https://www.bernzomatic.com/Products/Fuel-Cylinders/Butane/BF56"}, {"name": "GOJO Natural Orange Pumice Hand Cleaner", "company": "GOJO Industries", "code": "0955 / 0956", "use": "Cleaner", "sds_num": "955", "version": "1.9", "issue_date": "2020-06-01", "revision_date": "2023-03-29", "supersedes_date": "2018-11-12", "composition": "Citrus solvents, pumice, surfactants", "hfrp": "1/0/0/0", "sds_link": "https://www.gojo.com/en/Product/0955-04"}, {"name": "Great Stuff Fireblock Insulating Foam Sealant", "company": "DuPont", "code": "Fireblock", "use": "Machine Maintenance", "sds_num": "FB136", "version": "6.2", "issue_date": "2021-09-17", "revision_date": "2024-01-30", "supersedes_date": "2020-05-06", "composition": "Diphenylmethane diisocyanate (MDI), propane", "hfrp": "2/4/1/0", "sds_link": "https://www.greatstuff.dupont.com/products/greatstuff-fireblock.html"}, {"name": "Loctite Threadlocker / Thread Smart", "company": "Henkel", "code": "242", "use": "Machine Maintenance", "sds_num": "242", "version": "5", "issue_date": "2020-10-13", "revision_date": "2023-11-08", "supersedes_date": "2019-02-21", "composition": "Dimethacrylate ester, cumene hydroperoxide", "hfrp": "2/1/0/0", "sds_link": "https://www.henkel-adhesives.com/us/en/product/threadlockers/loctite_2420.html"}, {"name": "Lubriplate Grease 630-AA", "company": "Lubriplate Lubricants Company", "code": "630-AA", "use": "Machine Maintenance", "sds_num": "630-AA", "version": "2.7", "issue_date": "2019-01-04", "revision_date": "2022-08-19", "supersedes_date": "2017-06-15", "composition": "Petroleum oil, lithium soap, additives", "hfrp": "1/1/0/0", "sds_link": "https://www.lubriplate.com/Products/Greases/Multi-Purpose-Greases/630-Series/630-AA"}];
+
+let filtered = [...CHEMICALS];
+let activeIndex = -1;
+let qrInstance = null;
+
+// Populate category filter
+const cats = [...new Set(CHEMICALS.map(c => c.use).filter(Boolean))].sort();
+const sel = document.getElementById('categoryFilter');
+cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+
+function filterProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const cat = document.getElementById('categoryFilter').value;
+  filtered = CHEMICALS.filter(c => {
+    const matchQ = !q || c.name.toLowerCase().includes(q) || (c.company||'').toLowerCase().includes(q) || (c.code||'').toLowerCase().includes(q);
+    const matchCat = !cat || c.use === cat;
+    return matchQ && matchCat;
+  });
+  activeIndex = -1;
+  renderList();
+}
+
+function renderList() {
+  const list = document.getElementById('productList');
+  const badge = document.getElementById('countBadge');
+  badge.textContent = `${filtered.length} product${filtered.length !== 1 ? 's' : ''} found`;
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-dim);font-size:13px;">No products match your search.</div>';
+    return;
+  }
+  filtered.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'product-item' + (i === activeIndex ? ' active' : '');
+    el.innerHTML = `<span class="product-item-name">${c.name}</span><span class="product-item-company">${c.company||''}</span><span class="product-item-use">${c.use||''}</span>`;
+    el.onclick = () => selectProduct(i);
+    list.appendChild(el);
+  });
+}
+
+function selectProduct(i) {
+  activeIndex = i;
+  renderList();
+  showDetail(filtered[i]);
+}
+
+function val(v) { return v ? v : '<span class="empty">—</span>'; }
+
+function showDetail(c) {
+  document.getElementById('placeholder').style.display = 'none';
+  const card = document.getElementById('detailCard');
+  card.style.display = 'block';
+
+  document.getElementById('dName').textContent = c.name;
+  document.getElementById('dCompany').textContent = c.company ? `${c.company}` : 'Unknown Manufacturer';
+  document.getElementById('dCode').innerHTML = val(c.code);
+  document.getElementById('dUse').innerHTML = val(c.use);
+  document.getElementById('dSDS').innerHTML = val(c.sds_num);
+  document.getElementById('dVersion').innerHTML = val(c.version);
+  document.getElementById('dIssue').innerHTML = val(c.issue_date);
+  document.getElementById('dRevision').innerHTML = val(c.revision_date);
+
+  const comp = document.getElementById('dComposition');
+  if (c.composition) {
+    comp.className = 'info-item-value';
+    comp.textContent = c.composition;
+    document.getElementById('compBox').style.display = '';
+  } else {
+    document.getElementById('compBox').style.display = 'none';
+  }
+
+  // HFRP Diamond
+  updateDiamond(c.hfrp);
+
+  // SDS link
+  const btn = document.getElementById('sdsLink');
+  if (c.sds_link) {
+    btn.href = c.sds_link;
+    btn.className = 'sds-btn';
+    btn.removeAttribute('onclick');
+  } else {
+    btn.href = '#';
+    btn.className = 'sds-btn disabled';
+    btn.onclick = e => e.preventDefault();
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> SDS Link Not Available`;
+  }
+
+  // QR Code
+  const qrWrap = document.getElementById('qrBoxWrap');
+  qrWrap.innerHTML = '';
+  const urlDisplay = document.getElementById('qrUrlDisplay');
+  if (c.sds_link) {
+    const box = document.createElement('div');
+    box.className = 'qr-box';
+    const qrDiv = document.createElement('div');
+    qrDiv.id = 'qrcode';
+    box.appendChild(qrDiv);
+    qrWrap.appendChild(box);
+    new QRCode(qrDiv, {
+      text: c.sds_link,
+      width: 120, height: 120,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    urlDisplay.textContent = c.sds_link;
+  } else {
+    qrWrap.innerHTML = '<div class="no-qr">No SDS link available — QR code cannot be generated.</div>';
+    urlDisplay.textContent = 'No URL on file';
+  }
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updateDiamond(hfrp) {
+  const parts = (hfrp || '').split('/');
+  const h = parts[0] || '–';
+  const f = parts[1] || '–';
+  const r = parts[2] || '–';
+  const s = parts[3] || '–';
+  document.getElementById('svgHealth').textContent = h;
+  document.getElementById('svgFire').textContent = f;
+  document.getElementById('svgReact').textContent = r;
+  document.getElementById('svgSpecial').textContent = s;
+  document.getElementById('hfrpRaw').textContent = hfrp ? `H:${h}  F:${f}  R:${r}  S:${s}` : '';
+}
+
+// Init
+filterProducts();
+</script>
+</body>
+</html>
